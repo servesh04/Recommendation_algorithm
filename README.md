@@ -56,31 +56,39 @@ Data Preparation
 1.1. Load the product catalog and historical purchase data
 1.2. Convert historical purchase data into a pandas DataFrame
 1.3. Add the current user's purchases to the DataFrame
+
 Data Encoding
 2.1. Use LabelEncoder to convert customer IDs to numerical format
 2.2. Use LabelEncoder to convert product IDs to numerical format
+
 Create User-Item Matrix
 3.1. Construct a sparse matrix where rows represent users and columns represent products
 3.2. Set matrix values to 1 where a user has purchased a product, 0 otherwise
+
 K-Nearest Neighbors (KNN) Model
 4.1. Initialize a KNN model with cosine similarity as the distance metric
 4.2. Fit the KNN model on the user-item matrix
+
 Find Similar Users
 5.1. Identify the K nearest neighbors (similar users) to the current user
 5.2. K is the minimum of 5 and the total number of users
+
 Collaborative Filtering Recommendations
 6.1. Collect all products purchased by the similar users
 6.2. Remove products already purchased by the current user
 6.3. Remove duplicate products
+
 Popularity-based Recommendations
 7.1. Count the frequency of each product in the entire purchase history
 7.2. Sort products by purchase frequency in descending order
 7.3. Select the top N most popular products (e.g., N = 5)
 7.4. Remove products already purchased by the current user
+
 Combine Recommendations
 8.1. Start with the popularity-based recommendations
 8.2. Add collaborative filtering recommendations not already included
 8.3. Limit the total number of recommendations to 5
+
 Map Recommendations to Product Names
 9.1. Convert the recommended product IDs to their corresponding names using the product catalog
 Return Recommendations
