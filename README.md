@@ -52,44 +52,40 @@ This approach allows for a more interactive and personalized recommendation expe
 
 Algorithm :
 
-Data Preparation
-1.1. Load the product catalog and historical purchase data
-1.2. Convert historical purchase data into a pandas DataFrame
-1.3. Add the current user's purchases to the DataFrame
+Display Available Products:
 
-Data Encoding
-2.1. Use LabelEncoder to convert customer IDs to numerical format
-2.2. Use LabelEncoder to convert product IDs to numerical format
+Loop through the products dictionary and print each product's ID and name.
 
-Create User-Item Matrix
-3.1. Construct a sparse matrix where rows represent users and columns represent products
-3.2. Set matrix values to 1 where a user has purchased a product, 0 otherwise
+Get User Purchases:
 
-K-Nearest Neighbors (KNN) Model
-4.1. Initialize a KNN model with cosine similarity as the distance metric
-4.2. Fit the KNN model on the user-item matrix
+Initialize an empty list user_purchases to store products purchased by the user.
+Prompt the user to input product IDs of purchased items until the user enters 'done'.
+If a valid product ID is entered, append it to user_purchases.
+If the input is invalid (not a number or not a valid product ID), prompt the user to try again.
+Return the list of user_purchases.
 
-Find Similar Users
-5.1. Identify the K nearest neighbors (similar users) to the current user
-5.2. K is the minimum of 5 and the total number of users
+Candidate Elimination Algorithm:
 
-Collaborative Filtering Recommendations
-6.1. Collect all products purchased by the similar users
-6.2. Remove products already purchased by the current user
-6.3. Remove duplicate products
+Initialize Sets:
+Let S be the set of user's purchased product IDs.
+Let G be the set of all possible combinations of products of size equal to the length of S.
+Iterate Over Customer Purchase Data:
+For each row in the DataFrame df:
+Determine customer_purchases, the set of products purchased by the current customer.
+Positive Example (Customer Purchases Superset of S):
+Update G to contain only those combinations in G that are subsets of customer_purchases.
+Negative Example (Customer Purchases Not Superset of S):
+Update S by intersecting it with customer_purchases.
+Remove any combinations in G that are subsets of customer_purchases.
+Return Final Hypothesis:
+Return the sets S and G.
 
-Popularity-based Recommendations
-7.1. Count the frequency of each product in the entire purchase history
-7.2. Sort products by purchase frequency in descending order
-7.3. Select the top N most popular products (e.g., N = 5)
-7.4. Remove products already purchased by the current user
+Generate Recommendations:
 
-Combine Recommendations
-8.1. Start with the popularity-based recommendations
-8.2. Add collaborative filtering recommendations not already included
-8.3. Limit the total number of recommendations to 5
-
-Map Recommendations to Product Names
-9.1. Convert the recommended product IDs to their corresponding names using the product catalog
-Return Recommendations
-10.1. Return the list of recommended product names
+Call candidate_elimination with user_purchases and the list of all product IDs.
+Initialize an empty set recommendations.
+Loop through each combination g in G:
+Add the difference between g and S to the recommendations set.
+Remove any products from recommendations that the user has already purchased.
+If recommendations is empty, consider recommending all products not in user_purchases.
+Convert the final product IDs in recommendations to product names and return the top 5 recommendations.
