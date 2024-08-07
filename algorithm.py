@@ -1,7 +1,5 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
+from itertools import combinations
 
 # Sample product data
 products = {
@@ -14,23 +12,25 @@ products = {
     107: 'Wireless Mouse',
     108: 'Bluetooth Speaker',
     109: 'External Hard Drive',
-    110: 'Wireless Keyboard',
-    111: 'Fitness Tracker',
-    112: 'Gaming Console',
-    113: 'Webcam',
-    114: 'Printer',
-    115: 'Power Bank'
+    110: 'Wireless Keyboard'
 }
 
-# Sample purchase data
+# Sample purchase data (1 indicates purchase, 0 indicates no purchase)
 data = {
-    'customer_id': [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
-    'product_id': [101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
-    'purchase_date': ['2023-01-01', '2023-01-05', '2023-02-01', '2023-02-10', '2023-03-01', '2023-03-05', '2023-04-01', '2023-04-10', '2023-05-01', '2023-05-10']
+    'customer_id': [1, 2, 3, 4, 5],
+    101: [1, 1, 0, 1, 0],
+    102: [1, 0, 1, 0, 1],
+    103: [1, 1, 1, 0, 0],
+    104: [0, 1, 0, 1, 1],
+    105: [0, 0, 1, 1, 0],
+    106: [1, 0, 0, 0, 1],
+    107: [0, 1, 1, 0, 0],
+    108: [1, 0, 0, 1, 1],
+    109: [0, 1, 1, 0, 1],
+    110: [1, 1, 0, 1, 0]
 }
 
 df = pd.DataFrame(data)
-df['purchase_date'] = pd.to_datetime(df['purchase_date'])
 
 def get_user_purchases():
     user_purchases = []
@@ -53,51 +53,37 @@ def get_user_purchases():
     
     return user_purchases
 
+def candidate_elimination(user_purchases, all_products):
+    S = set(user_purchases)
+    G = set(combinations(all_products, len(user_purchases)))
+    
+    for _, row in df.iterrows():
+        customer_purchases = set([prod for prod in all_products if row[prod] == 1])
+        
+        if customer_purchases.issuperset(S):  # Positive example
+            G = {g for g in G if set(g).issubset(customer_purchases)}
+        else:  # Negative example
+            S = S.intersection(customer_purchases)
+            G = {g for g in G if not set(g).issubset(customer_purchases)}
+    
+    return S, G
+
 def get_recommendations(user_purchases):
-    # Add user purchases to the dataframe
-    user_id = max(df['customer_id']) + 1
-    for product_id in user_purchases:
-        df.loc[len(df)] = [user_id, product_id, pd.Timestamp.now()]
-
-    # Encode customer_id and product_id
-    customer_encoder = LabelEncoder()
-    product_encoder = LabelEncoder()
-    df['customer_encoded'] = customer_encoder.fit_transform(df['customer_id'])
-    df['product_encoded'] = product_encoder.fit_transform(df['product_id'])
-
-    # Create the user-item matrix
-    user_item_matrix = csr_matrix((df['purchase_date'].notnull().astype(int), 
-                                   (df['customer_encoded'], df['product_encoded'])))
-
-    # Fit the KNN model
-    knn = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=min(5, user_item_matrix.shape[0]))
-    knn.fit(user_item_matrix)
-
-    # Get recommendations
-    user_encoded = customer_encoder.transform([user_id])[0]
-    distances, indices = knn.kneighbors(user_item_matrix[user_encoded].reshape(1, -1))
-
-    # Collect products recommended by KNN
-    recommended_products_knn = []
-    for i in indices.flatten():
-        if i != user_encoded:  # Exclude the user's own purchases
-            recommended_products_knn.extend(df[df['customer_encoded'] == i]['product_id'].values)
-    recommended_products_knn = list(set(recommended_products_knn) - set(user_purchases))  # Remove user's purchases
-
-    # Get top N most frequently bought products
-    N = 5
-    product_counts = df['product_id'].value_counts().reset_index()
-    product_counts.columns = ['product_id', 'count']
-    top_n_products = product_counts[~product_counts['product_id'].isin(user_purchases)].sort_values(by='count', ascending=False).head(N)
-
-    # Combine KNN and top N recommendations
-    combined_recommendations = top_n_products['product_id'].tolist()
-    combined_recommendations.extend([pid for pid in recommended_products_knn if pid not in combined_recommendations][:5 - len(combined_recommendations)])
-
-    # Map product IDs to product names
-    recommended_product_names = [products[pid] for pid in combined_recommendations]
-
-    return recommended_product_names
+    all_products = list(products.keys())
+    S, G = candidate_elimination(user_purchases, all_products)
+    
+    recommendations = set()
+    for g in G:
+        recommendations.update(set(g) - S)
+    
+    recommendations = recommendations - set(user_purchases)
+    
+    if not recommendations:
+        recommendations = set(all_products) - set(user_purchases)
+    
+    recommended_products = [products[pid] for pid in list(recommendations)[:5]]
+    
+    return recommended_products
 
 # Main program
 print("Welcome to the Product Recommender!")
